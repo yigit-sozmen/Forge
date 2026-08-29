@@ -1,0 +1,16 @@
+{
+  "yfetch": {
+    "version": "1.0",
+    "description": "yfetch is a Python CLI tool for outputting basic system information to your terminal.",
+    "source": {
+      "url": "http://localhost:8000/packages/yfetch.tar.gz",
+      "build_steps": [
+        "./configure",
+        "make"
+      ]
+    },
+    "binary": {
+      "url": "http://localhost:8000/packages/yfetch.tar.gz"
+    }
+  }
+}
