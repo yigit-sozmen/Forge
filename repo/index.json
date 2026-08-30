@@ -5,8 +5,10 @@
     "source": {
       "url": "http://localhost:8000/packages/yfetch.tar.gz",
       "build_steps": [
-        "./configure",
-        "make"
+        "chmod +x yfetch.py",
+        "mkdir -p /home/yodazf/.local/bin",
+        "cp yfetch.py /home/yodazf/.local/bin/yfetch",
+        "cp -r logos.py /home/yodazf/.local/bin/"
       ]
     },
     "binary": {

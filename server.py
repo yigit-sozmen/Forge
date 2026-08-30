@@ -1,27 +1,24 @@
 import http.server
 import socketserver
-import os
+from pathlib import Path
 
 PORT = 8000
-REPO_DIR = os.path.join(os.path.dirname(__file__), "repo")
+REPO_DIR = Path(__file__).parent / "repo"
 
-class RepositoryHandler(http.server.SimpleHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=REPO_DIR, **kwargs)
+
+class RepositoryServer(socketserver.TCPServer):
+    allow_reuse_address = True
+
 
 def start_server():
-    if not os.path.exists(REPO_DIR):
-        os.makedirs(os.path.join(REPO_DIR, "packages"))
-        print(f"[0] Created repository directory structure at: {REPO_DIR}")
-        print("[0] Add your index.json and tarball files there.")
+    handler = lambda *args, **kwargs: http.server.SimpleHTTPRequestHandler(
+        *args, directory=str(REPO_DIR), **kwargs
+    )
 
-    with socketserver.TCPServer(("", PORT), RepositoryHandler) as httpd:
-        print(f"[*] Forge Repository Server running at http://localhost:{PORT}")
-        print("[*] Serving files from: ./repo/")
-        try:
-            httpd.serve_forever()
-        except KeyboardInterrupt:
-            print("\n[0] Server stopped.")
+    with RepositoryServer(("", PORT), handler) as httpd:
+        print(f"[*] Serving repository files from {REPO_DIR} on http://localhost:{PORT}")
+        httpd.serve_forever()
+
 
 if __name__ == "__main__":
     start_server()

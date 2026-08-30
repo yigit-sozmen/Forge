@@ -8,7 +8,7 @@ from fileinput import filename
 from pathlib import Path
 from urllib import request
 import json
-
+import shlex
 def user_input():
     parser = argparse.ArgumentParser(
         prog="forge",
@@ -40,7 +40,7 @@ def ask_argument(packages: list[str], use_binary: bool) -> bool:
     print("\nPackages to merge::\n")
     print(f"Mode : {mode_str}")
     for pkg in packages:
-        print(f" * {pkg}")
+        print(f" > {pkg}")
     print()
     try:
         response = input("Would you like to merge these packages? [y/N] ").strip().lower()
@@ -51,10 +51,10 @@ def ask_argument(packages: list[str], use_binary: bool) -> bool:
 
 
 def build_packages(build_steps: list[str], working_dir: Path):
-    print(f"\n[*] Compiling from source in: {working_dir}\n")
-
+    print(f"\n[>] Compiling from source in: {working_dir}\n")
     for step in build_steps:
         cmd_args = step.split()
+        cmd_args = shlex.split(step)
         print(f"[>] Running: {step}")
         try:
             subprocess.run(cmd_args, cwd=working_dir, check=True)
@@ -68,24 +68,37 @@ def build_packages(build_steps: list[str], working_dir: Path):
     print("\n[1] Build steps completed successfully!")
 
 
-def build_from_source(archive_url: str, build_steps: list[str]):
+def build_from_source(source_url: str, build_steps: list[str]):
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         archive_path = temp_path / "package.tar.gz"
         extract_dir = temp_path / "src"
-        extract_dir.mkdir(parents=True, exist_ok=True)
-
-        print(f"[*] Downloading {archive_url}...")
-        urllib.request.urlretrieve(archive_url, archive_path)
-
-        print("[*] Extracting...")
+        print(f"[>] Downloading {source_url}...")
+        urllib.request.urlretrieve(source_url, archive_path)
+        print("[>] Extracting...")
         with tarfile.open(archive_path, "r:gz") as tar:
             tar.extractall(path=extract_dir, filter="data")
+        extracted_items = list(extract_dir.iterdir())
+        if len(extracted_items) == 1 and extracted_items[0].is_dir():
+            working_dir = extracted_items[0]
+        else:
+            working_dir = extract_dir
+        build_packages(build_steps, working_dir)
 
-        subdirs = [p for p in extract_dir.iterdir() if p.is_dir()]
-        source_root = subdirs[0] if subdirs else extract_dir
+def get_binaries(archive_url:str,target_dir:Path):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path=Path(temp_dir)
+        archive_path=temp_path/"package.tar.gz"
+        extract_dir=temp_path/"bin"
+        extract_dir.mkdir(parents=True,exist_ok=True)
+        print(f"[>] Downloading {archive_url}...")
+        urllib.request.urlretrieve(archive_url, archive_path)
+        print(f"[>] Extracting binaries to {target_dir}...")
+        with tarfile.open(archive_path,"r:gz") as tar:
+            tar.extractall(path=target_dir, filter="data")
+        print(f"[1] Successfully installed binary packages.")
 
-        build_packages(build_steps, source_root)
+
 
 def fetch_manifest(repo_url:str) -> dict:
     response = urllib.request.urlopen(repo_url)
@@ -93,12 +106,13 @@ def fetch_manifest(repo_url:str) -> dict:
     data = json.loads(json_string)
     return data
 
+
 def main():
     args = user_input()
     REPO_URL = "http://localhost:8000/index.json"
     if args.command in ("install", "-S"):
         try:
-            print(f"[*] Fetching repository index from {REPO_URL}...")
+            print(f"[>] Fetching repository index from {REPO_URL}...")
             manifest = fetch_manifest(REPO_URL)
         except Exception as e:
             print(f"[!] Failed to fetch repository manifest: {e}")
@@ -114,14 +128,14 @@ def main():
                 print(f"[0!!!] Package '{pkg_name}' not found in repository!")
                 continue
             pkg_info = manifest[pkg_name]
-            print(f"\n[*] Processing {pkg_name} (v{pkg_info['version']})...")
+            print(f"\n[>] Processing {pkg_name} (v{pkg_info['version']})...")
             if build_mode == "source":
                 source_url = pkg_info["source"]["url"]
                 build_steps = pkg_info["source"]["build_steps"]
-
                 build_from_source(source_url, build_steps)
             else:
-                print("[0!!!] Binary mode not fully wired yet.")
-
+                binary_url = pkg_info["binary"]["url"]
+                target_dir = Path.home() / ".local"
+                get_binaries(binary_url, target_dir)
 if __name__ == "__main__":
     main()
