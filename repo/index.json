@@ -1,14 +1,14 @@
 {
   "yfetch": {
     "version": "1.0",
-    "description": "yfetch is a Python CLI tool for outputting basic system information to your terminal.",
+    "description": "System info fetch tool",
     "source": {
       "url": "http://localhost:8000/packages/yfetch.tar.gz",
       "build_steps": [
-        "chmod +x yfetch.py",
         "mkdir -p /home/yodazf/.local/bin",
         "cp yfetch.py /home/yodazf/.local/bin/yfetch",
-        "cp -r logos.py /home/yodazf/.local/bin/"
+        "cp logos.py /home/yodazf/.local/bin/",
+        "chmod +x /home/yodazf/.local/bin/yfetch"
       ]
     },
     "binary": {

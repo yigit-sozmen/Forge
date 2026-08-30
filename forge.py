@@ -97,14 +97,23 @@ def get_binaries(archive_url:str,target_dir:Path):
         with tarfile.open(archive_path,"r:gz") as tar:
             tar.extractall(path=target_dir, filter="data")
         print(f"[1] Successfully installed binary packages.")
-
-
-
 def fetch_manifest(repo_url:str) -> dict:
     response = urllib.request.urlopen(repo_url)
     json_string = response.read().decode("utf-8")
     data = json.loads(json_string)
     return data
+def package_search(manifest:dict,query:str):
+    print(f"[>] Searching repository for {query}...\n")
+    matches=0
+    for pkg_name,pkg_info in manifest.items():
+        description:pkg_info.get("description","No description.")
+        version=pkg_info.get("version","1.0")
+        if query.lower in pkg_name.lower() or query.lower() in desc.lower():
+            matches+=1
+            print(f"\033[1;32mrepo/\033[1;37m{pkg_name} \033[1;34mv{version}\033[0m")
+            print(f"    {desc}\n")
+        if matches == 0:
+            print(f"[0] No packages found matching '{query}'.")
 
 
 def main():
